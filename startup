@@ -1,0 +1,83 @@
+#!/bin/bash
+set -o errexit -o nounset -o pipefail
+
+STORAGE_PATH=/prometheus
+[ -d /mnt/mesos/sandbox/prometheus ] && STORAGE_PATH=/mnt/mesos/sandbox/prometheus
+mkdir -p $STORAGE_PATH/server $STORAGE_PATH/alertmanager
+rm -f $STORAGE_PATH/server/lock
+
+if [ -n "${NODE_EXPORTER_SRV-}" ]; then
+  /bin/srv2file_sd -srv "$NODE_EXPORTER_SRV" -out "/etc/prometheus/node_exporter.json" -loop -time ${SRV_REFRESH_INTERVAL:-60} &
+fi
+if [ -n "${CADVISOR_SRV-}" ]; then
+  /bin/srv2file_sd -srv "$CADVISOR_SRV" -out "/etc/prometheus/cadvisor.json" -loop -time ${SRV_REFRESH_INTERVAL:-60} &
+fi
+
+if [ -n "${METRICS_PORT_NAME-}" ]; then
+  /bin/service_discovery -out "/etc/prometheus/services.json" -loop -time ${SERVICE_REFRESH_INTERVAL:-20} \
+                       -portname "$METRICS_PORT_NAME" &
+fi
+
+# Getting secrets to connect to etcd
+if [ -z ${VAULT_ROLE_ID} ] || [ -z ${VAULT_SECRET_ID} ];  then
+  echo "No enviroment variables from sso plugin in marathon VAULT_ROLE_ID and VAULT_SECRET_ID defined"
+  exit 1
+elif [ -z ${STRING_VAULT_HOST} ] || [ -z ${VAULT_PORT} ]; then
+  echo "No enviroment variables STRING_VAULT_HOST and VAULT_PORT defined"
+  exit 2
+fi
+
+#Check if DCOS Metrics can be used
+set +e
+nc -z leader.mesos 61091
+METRICS=$?
+if [ $METRICS -eq 0 ]; then
+  /bin/sed -i'' -e "s#@MASTERS@#master.mesos#" /etc/prometheus/prometheus.yml
+  /bin/sed -i'' -e "s#@SLAVES@#slave.mesos#" /etc/prometheus/prometheus.yml
+fi
+set -e
+
+mkdir -p /etc/pki
+source /usr/sbin/kms_utils.sh
+
+OLD_IFS=${IFS}
+IFS=',' read -r -a VAULT_HOSTS <<< "$STRING_VAULT_HOST"
+IFS=${OLD_IFS}
+echo "Dynamic login with vault"
+login
+
+getCert userland prometheus prometheus-etcd PEM /etc/pki/
+
+getCAbundle /etc/pki PEM
+
+/bin/sed -i'' \
+  -e "s#@ALERTMANAGER_SCHEME@#${ALERTMANAGER_SCHEME:-http}#" \
+  -e "s#@ALERTMANAGER_URL@#${ALERTMANAGER_URL:-localhost:9093}#" \
+  /etc/prometheus/prometheus.yml
+
+/opt/confd/bin/confd -onetime \
+                     -backend etcd \
+                     -node https://etcd-client.service.${CONSUL_DOMAIN}:2379 \
+                     -client-ca-keys /etc/pki/ca-bundle.pem \
+                     -client-cert /etc/pki/prometheus-etcd.pem \
+                     -client-key /etc/pki/prometheus-etcd.key \
+                     -sync-only
+
+/opt/confd/bin/confd -watch \
+                     -backend etcd \
+                     -node https://etcd-client.service.${CONSUL_DOMAIN}:2379 \
+                     -client-ca-keys /etc/pki/ca-bundle.pem \
+                     -client-cert /etc/pki/prometheus-etcd.pem \
+                     -client-key /etc/pki/prometheus-etcd.key &
+
+/bin/alertmanager -config.file "/etc/prometheus/alertmanager.yml" \
+                  -storage.path "$STORAGE_PATH/alertmanager" &
+
+/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=$STORAGE_PATH/server \
+  --storage.tsdb.retention="${STORAGE_TSDB_RETENTION:-7d}" \
+  --web.console.libraries=/etc/prometheus/console_libraries \
+  --web.console.templates=/etc/prometheus/consoles \
+  --web.external-url=http://prometheusserver.marathon.l4lb.thisdcos.directory:9090 \
+  "$@"

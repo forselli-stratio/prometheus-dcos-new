@@ -1,0 +1,14 @@
+{{if exists "/alertmanager/global"}}global:{{$global := getv "/alertmanager/global"}}{{$line := split $global "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}
+
+{{if exists "/alertmanager/template"}}template:{{$template := getv "/alertmanager/template"}}{{$line := split $template "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}
+
+{{if exists "/alertmanager/route"}}route:{{$route := getv "/alertmanager/route"}}{{$line := split $route "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}
+
+{{if ls "/alertmanager/receivers"}}receivers:{{range getvs "/alertmanager/receivers/*"}}{{$line := split . "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}{{end}}
+
+{{if ls "/alertmanager/inhibit"}}inhibit_rules:{{range getvs "/alertmanager/inhibit/*"}}{{$line := split . "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}{{end}}

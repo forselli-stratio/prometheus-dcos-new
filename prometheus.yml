@@ -1,0 +1,58 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+rule_files:
+  - prometheus.rules
+
+scrape_configs:
+  - job_name: 'prometheus'
+    scrape_interval: 10s
+    static_configs:
+    - targets: ['localhost:9090']
+  - job_name: 'alertmanager'
+    scrape_interval: 10s
+    static_configs:
+    - targets: ['localhost:9093']
+  - job_name: 'nodeexporter'
+    scrape_interval: 5s
+    file_sd_configs:
+    - files: ['/etc/prometheus/node_exporter.json']
+    relabel_configs:
+    - source_labels: ['__address__']
+      target_label: 'instance'
+      regex: '(.*):.*'
+  - job_name: 'cadvisor'
+    scrape_interval: 5s
+    file_sd_configs:
+    - files: ['/etc/prometheus/cadvisor.json']
+    relabel_configs:
+    - source_labels: ['__address__']
+      target_label: 'instance'
+      regex: '(.*):.*'
+  - job_name: 'services'
+    scrape_interval: 5s
+    file_sd_configs:
+    - files: ['/etc/prometheus/services.json']
+    relabel_configs:
+    - source_labels: ['__address__']
+      target_label: 'instance'
+      regex: '(.*):.*'
+  - job_name: 'dcos-metrics-masters'
+    dns_sd_configs:
+      - names: ['@MASTERS@']
+        type: 'A'
+        port: 61091
+  - job_name: 'dcos-metrics-agents'
+    dns_sd_configs:
+      - names: ['@SLAVES@']
+        type: 'A'
+        port: 61091
+
+
+alerting:
+  alertmanagers:
+  - scheme: @ALERTMANAGER_SCHEME@
+    static_configs:
+    - targets:
+      - "@ALERTMANAGER_URL@"

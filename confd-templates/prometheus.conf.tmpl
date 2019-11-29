@@ -1,0 +1,20 @@
+{{if exists "/config/global"}}global:{{$global := getv "/config/global"}}{{$line := split $global "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}
+
+{{if ls "/config/rule_files"}}rule_files:{{$rules := getv "/config/rule_files"}}{{$line := split $rules "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}
+
+{{if ls "/config/scrape_configs"}}scrape_configs:{{range getvs "/config/scrape_configs/*"}}{{$line := split . "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}{{end}}
+
+{{if ls "/config/alerting"}}alerting:
+  {{if ls "/config/alerting/alert_relabel_configs"}}alert_relabel_configs:{{range getvs "/config/alerting/alert_relabel_configs/*"}}{{$line := split . "\n"}}{{range index $line}}
+    {{.}}{{end}}{{end}}{{end}}
+  {{if ls "/config/alerting/alertmanagers"}}alertmanagers:{{range getvs "/config/alerting/alertmanagers/*"}}{{$line := split . "\n"}}{{range index $line}}
+    {{.}}{{end}}{{end}}{{end}}{{end}}
+
+{{if ls "/config/remote_write"}}remote_write:{{range getvs "/config/remote_write/*"}}{{$line := split . "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}{{end}}
+
+{{if ls "/config/remote_read"}}remote_read:{{range getvs "/config/remote_read/*"}}{{$line := split . "\n"}}{{range index $line}}
+  {{.}}{{end}}{{end}}{{end}}

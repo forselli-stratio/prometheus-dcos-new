@@ -1,0 +1,23 @@
+##################
+### Prometheus ###
+##################
+
+PROMETHEUS_VERSION=2.7.1
+
+#############
+### Confd ###
+#############
+
+CONFD_VERSION=0.15.0
+
+#################
+### Kms_utils ###
+#################
+
+SEC_UTILS_VERSION=0.4.1
+
+####################
+### Alertmanager ###
+####################
+
+ALERTMANAGER_VERSION=0.8.0

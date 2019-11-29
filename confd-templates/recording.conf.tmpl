@@ -1,0 +1,4 @@
+{{if ls "/recording"}}groups:
+- name: recording.rules
+  rules:{{range getvs "/recording/*"}}{{$job := split . "\n"}}{{range index $job}}
+    {{.}}{{end}}{{end}}{{end}}

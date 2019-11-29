@@ -1,0 +1,8 @@
+[template]
+src = "alarms.conf.tmpl"
+dest = "/etc/prometheus/alarms.rules"
+keys = [
+    "/alarms",
+]
+prefix = "/prometheus/"
+reload_cmd = "kill -1 $(pidof prometheus)"

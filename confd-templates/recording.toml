@@ -1,0 +1,8 @@
+[template]
+src = "recording.conf.tmpl"
+dest = "/etc/prometheus/recording.rules"
+keys = [
+    "/recording",
+]
+prefix = "/prometheus/"
+reload_cmd = "kill -1 $(pidof prometheus)"

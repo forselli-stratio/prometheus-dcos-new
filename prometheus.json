@@ -1,0 +1,68 @@
+{
+  "id": "/prometheus-eos",
+  "instances": 1,
+  "cpus": 0.5,
+  "mem": 4096,
+  "ports": [
+    0
+  ],
+  "env": {
+    "NODE_EXPORTER_SRV": "node-exporter.service.{{ json_consul_domain }}",
+    "CADVISOR_SRV": "cadvisor.service.{{ json_consul_domain }}",
+    "CONSUL_DOMAIN": "{{ json_consul_domain }}",
+    "STRING_VAULT_HOST": "vault.service.{{ json_consul_domain }}",
+    "VAULT_PORT": "8200",
+    "approle": {
+      "secret": "role"
+    },
+    "METRICS_PORT_NAME": "metrics"
+  },
+  "secrets": {
+    "role": {
+      "source": "open"
+    }
+  },
+  "container": {
+    "type": "DOCKER",
+    "volumes": [
+      {
+        "containerPath": "prometheus",
+        "persistent": {
+          "size": 4096
+        },
+        "mode": "RW"
+      }
+    ],
+    "docker": {
+      "image": "stratio/prometheus-dcos:{{ hostvars['localhost'].eos_prometheus_version }}",
+      "forcePullImage": false,
+      "network": "BRIDGE",
+      "portMappings": [
+        {
+          "containerPort": 9090,
+          "protocol": "tcp",
+          "labels": {
+            "VIP_0": "prometheus-eos:9090"
+          }
+        },
+        {
+          "containerPort": 9093,
+          "protocol": "tcp",
+          "labels": {
+            "VIP_0": "prometheus-eos:9093"
+          }
+        }
+      ]
+    }
+  },
+  "residency": {
+    "taskLostBehavior": "WAIT_FOREVER"
+  },
+  "healthChecks": [
+    {
+      "path": "/api/v1/query?query=prometheus_build_info",
+      "portIndex": 0,
+      "protocol": "HTTP"
+    }
+  ]
+}

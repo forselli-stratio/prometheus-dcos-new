@@ -1,0 +1,4 @@
+{{if ls "/alarms"}}groups:
+- name: alarms.rules
+  rules:{{range getvs "/alarms/*"}}{{$job := split . "\n"}}{{range index $job}}
+    {{.}}{{end}}{{end}}{{end}}

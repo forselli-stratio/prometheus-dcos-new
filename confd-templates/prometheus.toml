@@ -1,0 +1,8 @@
+[template]
+src = "prometheus.conf.tmpl"
+dest = "/etc/prometheus/prometheus.yml"
+keys = [
+    "/config"
+]
+prefix = "/prometheus/"
+reload_cmd = "/bin/sed -i'' -e \"s#@VAULT_TOKEN@#${VAULT_TOKEN}#\" /etc/prometheus/prometheus.yml && kill -1 $(pidof prometheus)"

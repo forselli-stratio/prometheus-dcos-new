@@ -1,0 +1,8 @@
+[template]
+src = "alertmanager.conf.tmpl"
+dest = "/etc/prometheus/alertmanager.yml"
+keys = [
+    "/alertmanager",
+]
+prefix = "/prometheus/"
+reload_cmd = "kill -1 $(pidof alertmanager)"
